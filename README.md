@@ -10,3 +10,6 @@
 - 잦은 매매로 인해 정확한 평단가와 실현 손익 계산이 힘든 투자자
 - 설정한 목표 비중에 맞춰 기계적인 리밸런싱을 하고 싶은 투자자
 
+## 화면 구성 (made by visily)
+
+<img width="4688" height="1501" alt="image" src="https://github.com/user-attachments/assets/177676a2-c7d9-4a13-b254-73f0569a2d0d" />
