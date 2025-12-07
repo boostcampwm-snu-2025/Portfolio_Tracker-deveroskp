@@ -1,4 +1,4 @@
-import type { AppData, PortfolioSummary, AssetAllocation, PerformanceItem, ReturnTrendItem, Transaction, RebalancingSuggestion, TargetAllocation } from '../types';
+import type { AppData, PortfolioSummary, AssetAllocation, PerformanceItem, ReturnTrendItem, TransactionType, RebalancingSuggestion, TargetAllocation } from '../types';
 
 const MOCK_DATA_URL = '/mockdata.json';
 
@@ -31,7 +31,7 @@ export const api = {
         return data.returnTrendData;
     },
 
-    async getTransactions(): Promise<Transaction[]> {
+    async getTransactions(): Promise<TransactionType[]> {
         const data = await this.fetchData();
         return data.transactions;
     },
