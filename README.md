@@ -20,13 +20,14 @@
 <img width="4688" height="1501" alt="image" src="https://github.com/user-attachments/assets/177676a2-c7d9-4a13-b254-73f0569a2d0d" />
 
 - 메인 화면 : 총 자산 현황, 자산별 비중 차트 (파이 차트), 최근 성과 요약, 리밸런싱 요약, 수익률 추이
+   - 드래그 앤 드랍 방식으로 위젯 배치 가능
 - 트랜잭션 화면 : 매수/매도 추가 화면, 트랜잭션 내역, 예상 손익
 - 리밸런싱 페이지: 목표 비중 설정 화면, AI 매수/매도 제안 화면
 
 ## 구현 기술 스택 혹은 API (예상)
 
 - Docker로 프론트엔드, 백엔드 실행
-- 프론트엔드: React + Recharts (차트 라이브러리)
+- 프론트엔드: React + Recharts (차트 라이브러리) + Tailwind CSS
 - 백엔드: FastAPI + Postgresql
 - 시세 API: Yahoo Finance, 한국투자증권 Open API
 - 암호화폐 API: CoinGecko API
