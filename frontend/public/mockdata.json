@@ -9,28 +9,18 @@
     "assetAllocation": [
         {
             "name": "주식",
-            "value": 45,
+            "value": 50,
             "color": "#2563eb"
         },
         {
-            "name": "채권",
-            "value": 30,
-            "color": "#10b981"
-        },
-        {
             "name": "암호화폐",
-            "value": 15,
+            "value": 30,
             "color": "#f59e0b"
         },
         {
             "name": "현금",
-            "value": 5,
+            "value": 20,
             "color": "#64748b"
-        },
-        {
-            "name": "부동산",
-            "value": 5,
-            "color": "#ef4444"
         }
     ],
     "performanceSummary": [
@@ -159,19 +149,14 @@
             "target": 50
         },
         {
-            "asset": "채권",
-            "current": 30,
-            "target": 20
-        },
-        {
-            "asset": "부동산",
+            "asset": "가상화폐",
             "current": 15,
-            "target": 15
+            "target": 30
         },
         {
             "asset": "현금",
             "current": 15,
-            "target": 10
+            "target": 20
         }
     ]
 }
