@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { TrendingUp, RotateCcw } from 'lucide-react';
 import Notification from '../components/Notification';
+import HoldingsTable from '../components/HoldingsTable';
 import { usePortfolio } from '../context/PortfolioContext';
 import { formatCurrency } from '../utils/formatters';
 import { Responsive, WidthProvider } from 'react-grid-layout';
@@ -18,7 +19,8 @@ const initialLayouts = {
         { i: 'performance', x: 0, y: 9, w: 4, h: 8 },
         { i: 'rebalancing', x: 4, y: 9, w: 4, h: 8 },
         { i: 'notifications', x: 8, y: 9, w: 4, h: 8 },
-        { i: 'trend', x: 0, y: 17, w: 12, h: 10 }
+        { i: 'holdings', x: 0, y: 17, w: 12, h: 14 },
+        { i: 'trend', x: 0, y: 31, w: 12, h: 12 }
     ],
     md: [
         { i: 'totalAssets', x: 0, y: 0, w: 6, h: 9 },
@@ -26,7 +28,8 @@ const initialLayouts = {
         { i: 'performance', x: 0, y: 9, w: 5, h: 8 },
         { i: 'rebalancing', x: 5, y: 9, w: 5, h: 8 },
         { i: 'notifications', x: 0, y: 17, w: 10, h: 6 },
-        { i: 'trend', x: 0, y: 23, w: 10, h: 10 }
+        { i: 'holdings', x: 0, y: 23, w: 10, h: 10 },
+        { i: 'trend', x: 0, y: 33, w: 10, h: 10 }
     ],
     sm: [
         { i: 'totalAssets', x: 0, y: 0, w: 6, h: 10 },
@@ -34,7 +37,8 @@ const initialLayouts = {
         { i: 'performance', x: 0, y: 20, w: 6, h: 8 },
         { i: 'rebalancing', x: 0, y: 28, w: 6, h: 8 },
         { i: 'notifications', x: 0, y: 36, w: 6, h: 6 },
-        { i: 'trend', x: 0, y: 42, w: 6, h: 10 }
+        { i: 'holdings', x: 0, y: 42, w: 6, h: 10 },
+        { i: 'trend', x: 0, y: 52, w: 6, h: 10 }
     ]
 };
 
@@ -207,6 +211,11 @@ const Dashboard = () => {
                 {/* Notifications (Now Market News) */}
                 <div key="notifications" className={cardClass}>
                     <Notification />
+                </div>
+
+                {/* Live Holdings Table */}
+                <div key="holdings" className={cardClass}>
+                    <HoldingsTable />
                 </div>
 
                 {/* Bottom Section: Return Trend Chart */}

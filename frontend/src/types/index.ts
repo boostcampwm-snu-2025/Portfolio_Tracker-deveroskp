@@ -61,3 +61,9 @@ export interface AppData {
     rebalancingSuggestions: RebalancingSuggestion[];
     targetAllocation: TargetAllocation[];
 }
+export interface Asset {
+    name: string;
+    amount: number;
+    avgPrice: number;
+    value: number;
+}

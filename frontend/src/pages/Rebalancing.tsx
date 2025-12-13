@@ -5,34 +5,33 @@ import { formatCurrency } from '../utils/formatters';
 import type { RebalancingSuggestion } from '../types';
 
 const Rebalancing = () => {
-    const { targetAllocation, rebalancingSuggestions: initialSuggestions, updateTargetAllocation, loading } = usePortfolio();
+    const { targetAllocation, updateTargetAllocation, resetTargetAllocation, loading } = usePortfolio();
     const [suggestions, setSuggestions] = useState<RebalancingSuggestion[]>([]);
 
+    // Calculate suggestions based on target vs current allocation
     useEffect(() => {
-        setSuggestions(initialSuggestions);
-    }, [initialSuggestions]);
+        if (targetAllocation.length === 0) {
+            setSuggestions([]);
+            return;
+        }
 
-    useEffect(() => {
-        if (targetAllocation.length === 0) return;
+        const newSuggestions: RebalancingSuggestion[] = [];
 
-        const newSuggestions = targetAllocation.map((item) => {
+        targetAllocation.forEach((item) => {
             const diff = item.target - item.current;
             const amount = Math.abs(diff) * 100000;
 
-            if (Math.abs(diff) < 1) return null;
+            if (Math.abs(diff) >= 1) {
+                newSuggestions.push({
+                    asset: item.asset,
+                    type: diff > 0 ? '매수' : '매도',
+                    amount: amount,
+                    detail: diff > 0 ? '포트폴리오 비중 증가' : '비중 축소',
+                });
+            }
+        });
 
-            return {
-                asset: item.asset,
-                type: diff > 0 ? '매수' : '매도',
-                amount: amount,
-                reason: diff > 0 ? '포트폴리오 비중 증가' : '비중 축소 및 이익 실현',
-                urgency: Math.abs(diff) > 5 ? 'high' : 'normal'
-            };
-        }).filter((item): item is any => Boolean(item));
-
-        if (newSuggestions.length > 0) {
-            setSuggestions(newSuggestions);
-        }
+        setSuggestions(newSuggestions);
     }, [targetAllocation]);
 
     const handleSliderChange = (asset: string, newValue: number) => {
@@ -57,7 +56,12 @@ const Rebalancing = () => {
                             <Sliders className="w-5 h-5 text-primary" />
                             목표 비중 설정
                         </h2>
-                        <button className="text-sm text-primary hover:underline">초기화</button>
+                        <button
+                            onClick={resetTargetAllocation}
+                            className="text-sm text-primary hover:underline"
+                        >
+                            초기화
+                        </button>
                     </div>
 
                     <div className="space-y-8">
