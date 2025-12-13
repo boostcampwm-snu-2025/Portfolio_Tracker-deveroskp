@@ -1,63 +1,62 @@
 
 import { usePortfolio } from '../context/PortfolioContext';
-import { useStockPrices } from '../hooks/useStockPrices';
+import { useMultipleYahooQuotes } from '../hooks/useYahooQuote';
+import { getYahooSymbol, ASSET_SYMBOL_MAP } from '../services/yahooFinance';
 import { formatCurrency } from '../utils/formatters';
 import { useMemo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
-// Mapping for demo purposes since Finnhub requires specific symbols
-const SYMBOL_MAP: Record<string, string> = {
-    '삼성전자 (KRW)': '005930.KO',
-    '삼성전자': '005930.KO',
-    '애플 (USD)': 'AAPL',
-    '애플': 'AAPL',
-    '비트코인 (BTC)': 'BINANCE:BTCUSDT',
-    '비트코인': 'BINANCE:BTCUSDT',
-    '이더리움 (ETH)': 'BINANCE:ETHUSDT',
-    '이더리움': 'BINANCE:ETHUSDT',
-    '테슬라 (USD)': 'TSLA',
-    '테슬라': 'TSLA',
-};
-
 const HoldingsTable = () => {
     const { assets } = usePortfolio();
 
-    // extract symbols
-    const symbols = assets.map(asset => SYMBOL_MAP[asset.name] || '').filter(Boolean);
-    const queries = useStockPrices(symbols);
+    // Get asset names for Yahoo Finance lookup
+    const assetNames = assets.map(asset => asset.name);
+    const { data: quotes, isLoading: quotesLoading } = useMultipleYahooQuotes(assetNames);
 
     // Merge portfolio data with live price data
     const holdings = useMemo(() => {
         return assets.map((asset) => {
-            const symbol = SYMBOL_MAP[asset.name];
-            const queryIndex = symbols.indexOf(symbol);
-            const quote = queryIndex >= 0 ? queries[queryIndex].data : null;
-            const isLoading = queryIndex >= 0 ? queries[queryIndex].isLoading : false;
+            const symbol = getYahooSymbol(asset.name);
+            const quote = symbol && quotes ? quotes[symbol] : null;
 
-            // use live price if available, otherwise fallback to asset.avgPrice (or could use a mock current price in context)
-            const currentPrice = quote?.c || asset.value / asset.amount; // fallback calculation
+            // use live price if available, otherwise fallback to avgPrice
+            const currentPrice = quote?.regularMarketPrice || asset.avgPrice || 0;
             const currentValue = currentPrice * asset.amount;
             const totalCost = asset.avgPrice * asset.amount;
             const profit = currentValue - totalCost;
-            const profitPercent = (profit / totalCost) * 100;
+            const profitPercent = totalCost > 0 ? (profit / totalCost) * 100 : 0;
 
             return {
                 ...asset,
-                symbol,
+                symbol: symbol || '-',
                 currentPrice,
                 currentValue,
                 profit,
                 profitPercent,
-                isLoading,
-                dayChange: quote?.dp || 0
+                isLoading: quotesLoading,
+                dayChange: quote?.regularMarketChangePercent || 0
             };
         });
-    }, [assets, queries, symbols]);
+    }, [assets, quotes, quotesLoading]);
+
+    if (holdings.length === 0) {
+        return (
+            <div className="h-full flex flex-col">
+                <div className="drag-handle cursor-move pb-2 mb-2 border-b border-slate-50 -mx-6 px-6 pt-2 -mt-2">
+                    <h2 className="text-lg font-semibold text-slate-900">실시간 보유 종목 현황</h2>
+                </div>
+                <div className="flex-1 flex items-center justify-center text-slate-500">
+                    보유 종목이 없습니다
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="h-full flex flex-col">
             <div className="drag-handle cursor-move pb-2 mb-2 border-b border-slate-50 -mx-6 px-6 pt-2 -mt-2">
                 <h2 className="text-lg font-semibold text-slate-900">실시간 보유 종목 현황</h2>
+                {quotesLoading && <span className="text-xs text-slate-400 ml-2">시세 로딩중...</span>}
             </div>
             <div className="overflow-x-auto flex-1">
                 <table className="w-full text-sm text-left">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { TrendingUp, RotateCcw } from 'lucide-react';
@@ -49,9 +49,27 @@ const Dashboard = () => {
         assetAllocation,
         performanceSummary,
         returnTrendData,
-        rebalancingSuggestions,
+        targetAllocation,
         loading
     } = usePortfolio();
+
+    // Calculate rebalancing suggestions from targetAllocation
+    const rebalancingSuggestions = useMemo(() => {
+        if (!targetAllocation || targetAllocation.length === 0) return [];
+
+        return targetAllocation
+            .filter(item => Math.abs(item.target - item.current) >= 1)
+            .map(item => {
+                const diff = item.target - item.current;
+                return {
+                    asset: item.asset,
+                    type: diff > 0 ? '매수' : '매도',
+                    detail: diff > 0
+                        ? `목표 ${item.target}% (현재 ${item.current.toFixed(1)}%)`
+                        : `목표 ${item.target}% (현재 ${item.current.toFixed(1)}%)`
+                };
+            });
+    }, [targetAllocation]);
 
     // State for layout
     const [layouts, setLayouts] = useState(() => {
@@ -196,12 +214,23 @@ const Dashboard = () => {
                         <h2 className="text-lg font-semibold text-slate-900">리밸런싱 권고</h2>
                     </div>
                     <div className="space-y-4 mb-6 flex-1 overflow-auto">
-                        {rebalancingSuggestions.map((item, idx) => (
-                            <div key={idx} className="border-l-2 border-slate-200 pl-3">
-                                <p className="text-sm font-medium text-slate-900">{item.asset}</p>
-                                <p className="text-xs text-slate-500 mt-1">{item.detail}</p>
+                        {rebalancingSuggestions.length === 0 ? (
+                            <div className="text-center py-4 text-slate-500 text-sm">
+                                목표 비중과 일치합니다
                             </div>
-                        ))}
+                        ) : (
+                            rebalancingSuggestions.map((item, idx) => (
+                                <div key={idx} className={`border-l-2 ${item.type === '매수' ? 'border-emerald-400' : 'border-rose-400'} pl-3`}>
+                                    <p className="text-sm font-medium text-slate-900">
+                                        {item.asset}
+                                        <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${item.type === '매수' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                            {item.type}
+                                        </span>
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-1">{item.detail}</p>
+                                </div>
+                            ))
+                        )}
                     </div>
                     <button className="w-full py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors mt-auto" onClick={() => navigate('/rebalancing')}>
                         리밸런싱 페이지로 이동
