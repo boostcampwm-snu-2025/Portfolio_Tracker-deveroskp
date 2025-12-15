@@ -19,6 +19,29 @@ class TransactionService:
         return self.repository.get_all(skip, limit)
 
     def create_transaction(self, transaction: TransactionCreate):
+        # Validate buy transactions
+        if transaction.type in ["매수", "BUY"]:
+            summary = self.portfolio_repository.calculate_summary()
+            cash = summary["cash"]
+            required_cash = (transaction.amount * transaction.price) + transaction.fee
+            
+            if required_cash > cash:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"현금이 부족합니다. 보유 현금: {cash:,.0f}, 필요 금액: {required_cash:,.0f}"
+                )
+
+        # Validate withdrawal transactions
+        if transaction.type in ["출금", "WITHDRAWAL"]:
+            summary = self.portfolio_repository.calculate_summary()
+            cash = summary["cash"]
+            
+            if transaction.amount > cash:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"출금 가능한 현금이 부족합니다. 보유 현금: {cash:,.0f}"
+                )
+
         # Validate sell transactions
         if transaction.type in ["매도", "SELL"]:
             holdings = self.portfolio_repository.get_current_holdings()
