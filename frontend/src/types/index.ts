@@ -28,12 +28,22 @@ export interface TransactionType {
     id: string;
     date: string;
     asset: string;
+    ticker?: string;
     type: string;
     amount: number;
     price: number;
     total: number;
     fee: number;
     status: string;
+}
+
+export interface Asset {
+    name: string;
+    ticker?: string;
+    amount: number;
+    avgPrice: number;
+    value: number;
+    currentPrice?: number;
 }
 
 export interface RebalancingSuggestion {

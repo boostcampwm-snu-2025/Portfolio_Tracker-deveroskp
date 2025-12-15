@@ -10,6 +10,7 @@ import {
     useTransactions,
     useRebalancingSuggestions
 } from '../hooks/usePortfolioQueries';
+import { useStockPrices } from '../hooks/useStockPrices';
 import type { PortfolioSummary, AssetAllocation, PerformanceItem, ReturnTrendItem, TransactionType, RebalancingSuggestion, TargetAllocation, Asset } from '../types';
 
 interface PortfolioContextType {
@@ -66,16 +67,22 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
     }, [assetAllocation]);
 
     // Calculate assets from transactions
-    const assets = useMemo(() => {
+    const rawAssets = useMemo(() => {
         if (!transactions) return [];
 
-        const assetMap = new Map<string, { amount: number; totalCost: number }>();
+        const assetMap = new Map<string, { amount: number; totalCost: number; ticker?: string }>();
 
         transactions.forEach(tx => {
             if (!assetMap.has(tx.asset)) {
-                assetMap.set(tx.asset, { amount: 0, totalCost: 0 });
+                assetMap.set(tx.asset, { amount: 0, totalCost: 0, ticker: tx.ticker });
             }
             const current = assetMap.get(tx.asset)!;
+            
+            // Update ticker if missing and available in current transaction
+            if (!current.ticker && tx.ticker) {
+                current.ticker = tx.ticker;
+            }
+
             if (tx.type === '매수') {
                 current.amount += tx.amount;
                 current.totalCost += tx.total + tx.fee;
@@ -90,11 +97,67 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
             .filter(([_, data]) => data.amount > 0)
             .map(([name, data]) => ({
                 name,
+                ticker: data.ticker,
                 amount: data.amount,
                 avgPrice: data.amount > 0 ? data.totalCost / data.amount : 0,
-                value: 0
             }));
     }, [transactions]);
+
+    // Fetch stock prices
+    const uniqueTickers = useMemo(() => {
+        return rawAssets.map(a => a.ticker).filter((t): t is string => !!t);
+    }, [rawAssets]);
+
+    const stockPricesQueries = useStockPrices(uniqueTickers);
+
+    const stockPricesMap = useMemo(() => {
+        const map = new Map<string, number>();
+        stockPricesQueries.forEach((query, index) => {
+            if (query.data) {
+                map.set(uniqueTickers[index], query.data.c);
+            }
+        });
+        return map;
+    }, [stockPricesQueries, uniqueTickers]);
+
+    // Calculate final assets with current value
+    const assets = useMemo(() => {
+        return rawAssets.map(asset => {
+            const currentPrice = asset.ticker ? stockPricesMap.get(asset.ticker) : undefined;
+            const value = currentPrice !== undefined ? currentPrice * asset.amount : asset.avgPrice * asset.amount;
+            return {
+                ...asset,
+                currentPrice,
+                value
+            };
+        });
+    }, [rawAssets, stockPricesMap]);
+
+    // Calculate real-time portfolio summary
+    const realTimePortfolioSummary = useMemo(() => {
+        if (!portfolioSummary) return null;
+
+        let unrealizedPnL = 0;
+        let holdingsValue = 0;
+
+        assets.forEach(asset => {
+            if (asset.currentPrice !== undefined) {
+                const marketValue = asset.currentPrice * asset.amount;
+                const costBasis = asset.avgPrice * asset.amount;
+                unrealizedPnL += (marketValue - costBasis);
+                holdingsValue += marketValue;
+            } else {
+                holdingsValue += asset.avgPrice * asset.amount;
+            }
+        });
+
+        return {
+            ...portfolioSummary,
+            holdingsValue,
+            totalValue: portfolioSummary.cash + holdingsValue,
+            unrealizedPnL
+        };
+    }, [portfolioSummary, assets]);
 
     const addTransaction = async (transaction: TransactionType): Promise<boolean> => {
         try {
@@ -128,7 +191,7 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
 
     return (
         <PortfolioContext.Provider value={{
-            portfolioSummary: portfolioSummary || null,
+            portfolioSummary: realTimePortfolioSummary || null,
             assetAllocation: assetAllocation || [],
             performanceSummary: performanceSummary || [],
             returnTrendData: returnTrendData || [],

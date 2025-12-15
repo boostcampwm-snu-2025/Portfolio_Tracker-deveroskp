@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Sliders, RefreshCw, CheckCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
-import { formatCurrency, formatNumber } from '../utils/formatters';
+import { formatCurrency, formatNumber, formatPercent } from '../utils/formatters';
 import { useMultipleYahooQuotes } from '../hooks/useYahooQuote';
 import { getYahooSymbol } from '../services/yahooFinance';
 
@@ -30,11 +30,20 @@ const Rebalancing = () => {
         if (targetAllocation.length === 0 || !portfolioSummary) return [];
 
         const totalValue = portfolioSummary.totalValue || 0;
+        const totalTarget = targetAllocation.reduce((acc, cur) => acc + cur.target, 0);
+
+        // Avoid division by zero
+        if (totalTarget === 0) return [];
 
         return targetAllocation
-            .filter(item => Math.abs(item.target - item.current) >= 1)
             .map(item => {
-                const diff = item.target - item.current;
+                // Normalize target if total is not 100
+                const normalizedTarget = (item.target / totalTarget) * 100;
+                const diff = normalizedTarget - item.current;
+                
+                // Only show suggestions if diff is significant (e.g. >= 1%)
+                if (Math.abs(diff) < 1) return null;
+
                 const symbol = getYahooSymbol(item.asset);
                 const quote = symbol && quotes ? quotes[symbol] : null;
                 const currentPrice = quote?.regularMarketPrice || 0;
@@ -50,16 +59,17 @@ const Rebalancing = () => {
                     symbol: symbol || '-',
                     type: diff > 0 ? '매수' : '매도',
                     currentPercent: item.current,
-                    targetPercent: item.target,
+                    targetPercent: Number(normalizedTarget.toFixed(1)), // Use normalized target for display
                     diffPercent: diff,
                     currentPrice,
                     requiredAmount,
                     requiredQuantity,
                     detail: diff > 0
-                        ? `${item.current.toFixed(1)}% → ${item.target}%`
-                        : `${item.current.toFixed(1)}% → ${item.target}%`
+                        ? `${formatPercent(item.current)}% → ${formatPercent(normalizedTarget)}%`
+                        : `${formatPercent(item.current)}% → ${formatPercent(normalizedTarget)}%`
                 };
-            }) as EnhancedSuggestion[];
+            })
+            .filter((item): item is EnhancedSuggestion => item !== null);
     }, [targetAllocation, portfolioSummary, quotes]);
 
     const handleSliderChange = (asset: string, newValue: number) => {
@@ -105,13 +115,13 @@ const Rebalancing = () => {
                                             <span className="font-medium text-slate-900">{item.asset}</span>
                                             {diff !== 0 && (
                                                 <span className={`text-xs px-1.5 py-0.5 rounded ${diff > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                                                    {diff > 0 ? '+' : ''}{diff.toFixed(1)}%
+                                                    {diff > 0 ? '+' : ''}{formatPercent(diff)}%
                                                 </span>
                                             )}
                                         </div>
                                         <div className="text-right">
                                             <span className="font-bold text-slate-900">{item.target}%</span>
-                                            <span className="text-xs text-slate-400 ml-1">(현재 {item.current.toFixed(1)}%)</span>
+                                            <span className="text-xs text-slate-400 ml-1">(현재 {formatPercent(item.current)}%)</span>
                                         </div>
                                     </div>
                                     {/* Progress bar showing current vs target */}
@@ -158,6 +168,23 @@ const Rebalancing = () => {
                     </div>
 
                     <div className="space-y-4">
+                        {totalTarget !== 100 && totalTarget > 0 && (
+                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-blue-100 rounded-full text-blue-600 mt-0.5">
+                                        <RefreshCw className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-blue-900">자동 비율 조정됨</h3>
+                                        <p className="text-sm text-blue-700 mt-1">
+                                            목표 비중의 합계({totalTarget}%)가 100%가 아니어서, 
+                                            각 자산의 비중을 100% 기준으로 자동 환산하여 계산했습니다.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {suggestions.length === 0 ? (
                             <div className="text-center py-12 text-slate-500">
                                 <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-500" />

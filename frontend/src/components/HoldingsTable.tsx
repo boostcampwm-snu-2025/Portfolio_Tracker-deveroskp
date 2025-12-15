@@ -2,7 +2,7 @@
 import { usePortfolio } from '../context/PortfolioContext';
 import { useMultipleYahooQuotes } from '../hooks/useYahooQuote';
 import { getYahooSymbol, ASSET_SYMBOL_MAP } from '../services/yahooFinance';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatPercent } from '../utils/formatters';
 import { useMemo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -86,7 +86,7 @@ const HoldingsTable = () => {
                                         <div className="flex flex-col items-end">
                                             <span>{formatCurrency(item.currentPrice)}</span>
                                             <span className={`text-[10px] flex items-center ${item.dayChange >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                                {item.dayChange > 0 ? '+' : ''}{item.dayChange.toFixed(2)}% (1D)
+                                                {item.dayChange > 0 ? '+' : ''}{formatPercent(item.dayChange)}% (1D)
                                             </span>
                                         </div>
                                     )}
@@ -97,7 +97,7 @@ const HoldingsTable = () => {
                                 <td className="px-3 py-2 text-right">
                                     <div className={`flex items-center justify-end gap-1 ${item.profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                                         {item.profit >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                                        <span className="font-medium">{item.profitPercent.toFixed(2)}%</span>
+                                        <span className="font-medium">{formatPercent(item.profitPercent)}%</span>
                                     </div>
                                     <span className={`text-xs block ${item.profit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                         {item.profit > 0 ? '+' : ''}{formatCurrency(item.profit)}

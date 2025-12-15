@@ -5,7 +5,7 @@ import { TrendingUp, RotateCcw } from 'lucide-react';
 import Notification from '../components/Notification';
 import HoldingsTable from '../components/HoldingsTable';
 import { usePortfolio } from '../context/PortfolioContext';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatPercent } from '../utils/formatters';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -138,7 +138,7 @@ const Dashboard = () => {
                         <span className="text-4xl font-bold text-slate-900">{formatCurrency(portfolioSummary.totalValue)}</span>
                         <span className="flex items-center text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
                             <TrendingUp className="w-3 h-3 mr-1" />
-                            {formatCurrency(portfolioSummary.todaysChange)} ({portfolioSummary.todaysChangePercent}%)
+                            {formatCurrency(portfolioSummary.todaysChange)} ({formatPercent(portfolioSummary.todaysChangePercent)}%)
                         </span>
                     </div>
 
@@ -173,7 +173,7 @@ const Dashboard = () => {
                                         <Cell key={`cell - ${index} `} fill={entry.color} />
                                     ))}
                                 </Pie>
-                                <Tooltip formatter={(value: number) => `${value}% `} />
+                                <Tooltip formatter={(value: number) => `${formatPercent(value)}% `} />
                             </PieChart>
                         </ResponsiveContainer>
                         {/* Center Text Overlay */}
@@ -201,7 +201,7 @@ const Dashboard = () => {
                             <div key={item.period} className="flex justify-between items-center">
                                 <span className="text-slate-500 text-sm">{item.period}</span>
                                 <span className={`text - sm font - medium px - 2 py - 1 rounded - lg ${item.isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'} `}>
-                                    {item.isPositive ? '+' : ''}{item.value}%
+                                    {item.isPositive ? '+' : ''}{formatPercent(item.value)}%
                                 </span>
                             </div>
                         ))}

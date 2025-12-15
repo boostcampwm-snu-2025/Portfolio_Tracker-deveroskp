@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePortfolio } from '../../context/PortfolioContext';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
 import { useYahooQuote } from '../../hooks/useYahooQuote';
+import { getYahooSymbol } from '../../services/yahooFinance';
 import type { TransactionType } from '../../types';
 
 const TransactionInput = () => {
@@ -15,6 +16,8 @@ const TransactionInput = () => {
         fee: '',
     });
 
+    const availableCash = portfolioSummary?.cash || 0;
+
     // Fetch current price for selected asset
     const { data: quoteData, isLoading: isLoadingQuote } = useYahooQuote(formData.asset);
 
@@ -26,22 +29,39 @@ const TransactionInput = () => {
     const isDepositOrWithdraw = formData.type === '입금' || formData.type === '출금';
 
     const safeParse = (val: string) => parseFloat(val.replace(/,/g, '')) || 0;
-    const expectedChange = isDepositOrWithdraw
-        ? safeParse(formData.amount)
-        : safeParse(formData.amount) * safeParse(formData.price) + safeParse(formData.fee);
+    
+    let expectedChange = 0;
+    if (isDepositOrWithdraw) {
+        expectedChange = safeParse(formData.amount);
+    } else if (formData.type === '매수') {
+        expectedChange = safeParse(formData.amount) * safeParse(formData.price) + safeParse(formData.fee);
+    } else {
+        // 매도: (수량 * 단가) - 수수료
+        expectedChange = safeParse(formData.amount) * safeParse(formData.price) - safeParse(formData.fee);
+    }
+    
+    const isInsufficientCash = (formData.type === '매수' || formData.type === '출금') && expectedChange > availableCash;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (isInsufficientCash) {
+            alert('보유 현금이 부족합니다.');
+            return;
+        }
+
         const finalAsset = isDepositOrWithdraw ? '현금' : formData.asset;
         const finalPrice = isDepositOrWithdraw ? 1 : Number(formData.price);
         const finalAmount = Number(formData.amount);
+
+        const ticker = getYahooSymbol(finalAsset);
 
         const newTx: TransactionType = {
             id: `tx${Date.now()}`,
             date: formData.date,
             type: formData.type,
             asset: finalAsset,
+            ticker: ticker || undefined,
             amount: finalAmount,
             price: finalPrice,
             total: finalAmount * finalPrice,
@@ -68,7 +88,12 @@ const TransactionInput = () => {
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Transaction Type */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">거래 유형</label>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="block text-sm font-medium text-slate-700">거래 유형</label>
+                            <span className="text-xs text-slate-500 font-medium">
+                                보유 현금: <span className="text-emerald-600">{formatCurrency(availableCash)}</span>
+                            </span>
+                        </div>
                         <div className="grid grid-cols-4 gap-2">
                             {['매수', '매도', '입금', '출금'].map((type) => (
                                 <label
@@ -200,8 +225,26 @@ const TransactionInput = () => {
                         </>
                     )}
 
+                    {/* Warning for insufficient cash */}
+                    {isInsufficientCash && (
+                        <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            <span>보유 현금이 부족합니다. (필요: {formatCurrency(expectedChange)})</span>
+                        </div>
+                    )}
+
                     <div className="flex gap-3 pt-2">
-                        <button type="submit" className="flex-1 bg-primary text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                        <button 
+                            type="submit" 
+                            disabled={isInsufficientCash}
+                            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors
+                                ${isInsufficientCash 
+                                    ? 'bg-slate-300 text-white cursor-not-allowed' 
+                                    : 'bg-primary text-white hover:bg-blue-700'
+                                }`}
+                        >
                             {isDepositOrWithdraw ? (formData.type === '입금' ? '입금하기' : '출금하기') : '거래 추가'}
                         </button>
                         <button type="button"
@@ -218,30 +261,6 @@ const TransactionInput = () => {
                         </button>
                     </div>
                 </form>
-            </div>
-
-            {/* Impact Preview */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">포트폴리오 영향 미리보기</h2>
-                <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">현재 총 자산 가치</span>
-                        <span className="font-medium text-slate-900">{formatNumber(portfolioSummary?.totalValue || 0)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">예상 변동액</span>
-                        <span className={`font-medium ${(formData.type === '매수' || formData.type === '출금') ? 'text-rose-600' : 'text-emerald-600'}`}>
-                            {(formData.type === '입금' || formData.type === '매도') ? '+' : '-'}{formatCurrency(expectedChange)}
-                        </span>
-                    </div>
-                    <div className="border-t border-slate-100 my-2 pt-2 flex justify-between text-base">
-                        <span className="font-medium text-slate-900">최종 예상 가치</span>
-                        <span className="font-bold text-slate-900">
-                            {formatCurrency((portfolioSummary?.totalValue || 0) +
-                                ((formData.type === '입금' || formData.type === '매도') ? expectedChange : -expectedChange))}
-                        </span>
-                    </div>
-                </div>
             </div>
         </div>
     );
