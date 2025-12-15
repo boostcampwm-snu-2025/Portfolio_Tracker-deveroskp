@@ -37,6 +37,8 @@
 
 ## 데모 영상
 
+https://drive.google.com/file/d/1j1lwUJvPudKaUhe8qAgElH8O0RzkgO8V/view?usp=sharing
+
 ## 기술 스택
 
 **백엔드**
